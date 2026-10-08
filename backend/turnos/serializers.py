@@ -8,7 +8,6 @@ class MesaSerializer(serializers.ModelSerializer):
 
 class CrearTurnoSerializer(serializers.Serializer):
     cliente = serializers.CharField(max_length=80, trim_whitespace=True)
-    mesa_id = serializers.IntegerField(min_value=1)
 
     def validate_cliente(self, value):
         if not value:

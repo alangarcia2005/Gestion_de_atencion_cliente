@@ -1,0 +1,84 @@
+<main class="page">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="sparkle">✦</span> CENTRO DE ATENCIÓN</p>
+      <h1>Hola, bienvenido <span class="sparkle">✳</span></h1>
+      <p class="subtitle">Consulta el estado de las mesas y toma tu turno.</p>
+    </div>
+    <button class="primary top-action" type="button" (click)="abrirTurno()"><span aria-hidden="true">＋</span> Tomar un turno</button>
+  </header>
+
+  <p *ngIf="error()" class="notice error" role="alert">{{ error() }}</p>
+  <p *ngIf="mensaje()" class="notice success-notice" role="status">{{ mensaje() }}</p>
+
+  <section class="stats" aria-label="Resumen de atención">
+    <article class="stat-card">
+      <div class="stat-icon purple" aria-hidden="true">▤</div>
+      <div class="stat-content"><p class="stat-label">EN ESPERA</p><strong>{{ resumen().turnos_espera }}</strong><span>clientes en fila</span></div>
+      <span class="stat-arrow" aria-hidden="true">↗</span>
+    </article>
+    <article class="stat-card">
+      <div class="stat-icon green" aria-hidden="true">●</div>
+      <div class="stat-content"><p class="stat-label">MESAS LIBRES</p><strong>{{ resumen().mesas_libres }}</strong><span>listas para atender</span></div>
+      <span class="stat-arrow flower" aria-hidden="true">✳</span>
+    </article>
+    <article class="stat-card">
+      <div class="stat-icon orange" aria-hidden="true">◷</div>
+      <div class="stat-content"><p class="stat-label">EN ATENCIÓN</p><strong>{{ resumen().en_atencion }}</strong><span>clientes siendo atendidos</span></div>
+      <span class="stat-arrow" aria-hidden="true">↗</span>
+    </article>
+  </section>
+
+  <section class="mesas-panel" aria-labelledby="mesas-title">
+    <div class="section-heading">
+      <div><p class="eyebrow">ESTADO DEL RESTAURANTE</p><h2 id="mesas-title">Mesas</h2></div>
+      <span class="staff-badge" *ngIf="resumen().personal">Personal conectado</span>
+    </div>
+    <div class="table-grid">
+      <article *ngFor="let mesa of resumen().mesas" class="table-card" [class.occupied]="!mesa.disponible">
+        <div class="table-top"><strong>Mesa {{ mesa.numero }}</strong><span class="table-state" [class.free]="mesa.disponible">{{ mesa.disponible ? 'LIBRE' : 'OCUPADA' }}</span></div>
+        <p class="capacity">{{ mesa.capacidad }} personas</p>
+        <p *ngIf="mesa.turno_numero !== null" class="current-turn">Turno #{{ mesa.turno_numero }}</p>
+        <button *ngIf="!mesa.disponible" class="release-button" type="button" [disabled]="!resumen().personal || desocupandoId() === mesa.id" (click)="desocupar(mesa)">
+          {{ desocupandoId() === mesa.id ? 'Liberando…' : 'Desocupar mesa' }}
+        </button>
+        <span *ngIf="mesa.disponible" class="available-note">Disponible para el siguiente turno</span>
+      </article>
+      <p *ngIf="resumen().mesas.length === 0" class="empty">Aún no hay mesas registradas.</p>
+    </div>
+    <p *ngIf="!resumen().personal" class="staff-hint">
+      ¿Eres parte del personal?
+      <a href="http://127.0.0.1:8000/admin/" target="_blank" rel="noreferrer">Inicia sesión en administración</a>
+      para habilitar el botón de desocupar.
+    </p>
+  </section>
+
+  <footer><span>¿Necesitas ayuda? Nuestro equipo está para atenderte.</span><span class="refresh-note"><i></i> Disponibilidad actualizada automáticamente</span></footer>
+
+  <div *ngIf="formularioAbierto()" class="modal-backdrop" (click)="cerrarTurno()">
+    <section class="turn-modal" role="dialog" aria-modal="true" aria-labelledby="turn-title" (click)="$event.stopPropagation()">
+      <button class="close-button" type="button" aria-label="Cerrar" (click)="cerrarTurno()">×</button>
+      <ng-container *ngIf="turnoCreado() as turno; else formTurno">
+        <div class="success-icon" aria-hidden="true">✓</div>
+        <p class="eyebrow">TURNO GENERADO</p>
+        <h2 id="turn-title">Tu número es el #{{ turno.numero }}</h2>
+        <p class="modal-description" *ngIf="turno.mesa !== null">Hola {{ turno.cliente }}, te asignamos automáticamente la mesa {{ turno.mesa }}.</p>
+        <p class="modal-description" *ngIf="turno.mesa === null">Hola {{ turno.cliente }}, estás en la fila. Te asignaremos una mesa automáticamente cuando se desocupe una.</p>
+        <button class="primary modal-submit" type="button" (click)="reiniciar()">Listo</button>
+      </ng-container>
+      <ng-template #formTurno>
+        <p class="eyebrow">TOMAR TURNO</p>
+        <h2 id="turn-title">¿Quién sigue?</h2>
+        <p class="modal-description">Escribe tu nombre y te daremos un número. Si no hay mesas libres, quedarás en fila.</p>
+        <form class="turn-form" (ngSubmit)="confirmarTurno()">
+          <label for="cliente">Nombre del cliente</label>
+          <input #nombreInput id="cliente" name="cliente" [ngModel]="cliente()" (ngModelChange)="cliente.set($event)" maxlength="80" placeholder="Tu nombre" autocomplete="name">
+          <button class="primary modal-submit" type="submit" [disabled]="enviando() || !cliente().trim()">
+            {{ enviando() ? 'Generando…' : 'Generar turno' }} <span aria-hidden="true">→</span>
+          </button>
+        </form>
+        <p class="queue-note">Las mesas se asignan automáticamente en orden de llegada.</p>
+      </ng-template>
+    </section>
+  </div>
+</main>

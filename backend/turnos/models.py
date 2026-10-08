@@ -18,9 +18,9 @@ class Turno(models.Model):
         FINALIZADO = "finalizado", "Finalizado"
         CANCELADO = "cancelado", "Cancelado"
 
-    numero = models.PositiveIntegerField(unique=True, editable=False)
+    numero = models.PositiveIntegerField(unique=True, editable=False, null=True, blank=True)
     cliente = models.CharField(max_length=80)
-    mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="turnos")
+    mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT, related_name="turnos", null=True, blank=True)
     estado = models.CharField(max_length=16, choices=Estado.choices, default=Estado.ESPERANDO)
     creado_en = models.DateTimeField(auto_now_add=True)
 
@@ -28,10 +28,11 @@ class Turno(models.Model):
         ordering = ["-creado_en"]
 
     def save(self, *args, **kwargs):
-        if not self.numero:
-            ultimo = Turno.objects.order_by("-numero").values_list("numero", flat=True).first() or 0
-            self.numero = ultimo + 1
+        nuevo_sin_numero = self._state.adding and self.numero is None
         super().save(*args, **kwargs)
+        if nuevo_sin_numero:
+            self.numero = self.pk
+            type(self).objects.filter(pk=self.pk).update(numero=self.numero)
 
     def __str__(self):
         return f"Turno {self.numero} — {self.cliente}"

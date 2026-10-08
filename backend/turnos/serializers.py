@@ -7,9 +7,9 @@ class MesaSerializer(serializers.ModelSerializer):
         fields = ["id", "numero", "capacidad", "disponible"]
 
 class CrearTurnoSerializer(serializers.Serializer):
-    cliente = serializers.CharField(max_length=80, trim_whitespace=True)
+    cliente = serializers.CharField(max_length=80, trim_whitespace=True, required=False, default="Cliente")
 
     def validate_cliente(self, value):
         if not value:
-            raise serializers.ValidationError("Escribe el nombre del cliente.")
+            return "Cliente"
         return value

@@ -1,32 +1,28 @@
 import { HttpClient, HttpClientModule, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Subscription, interval, startWith, switchMap } from 'rxjs';
 
 interface Mesa { id: number; numero: number; capacidad: number; disponible: boolean; turno_numero: number | null; turno_estado: string | null; }
 interface Resumen { turnos_espera: number; mesas_libres: number; en_atencion: number; mesas: Mesa[]; personal: boolean; }
-interface TurnoCreado { numero: number; cliente: string; mesa: number | null; estado: string; }
+interface TurnoCreado { numero: number; mesa: number | null; estado: string; }
 interface ResultadoLiberacion { detail: string; mesa: number; turno_asignado: number | null; }
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, HttpClientModule],
   templateUrl: './app.component.html'
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly subscriptions = new Subscription();
-  @ViewChild('nombreInput') private nombreInput?: ElementRef<HTMLInputElement>;
 
   readonly resumen = signal<Resumen>({ turnos_espera: 0, mesas_libres: 0, en_atencion: 0, mesas: [], personal: false });
-  readonly cliente = signal('');
   readonly error = signal('');
   readonly mensaje = signal('');
   readonly enviando = signal(false);
   readonly desocupandoId = signal<number | null>(null);
-  readonly formularioAbierto = signal(false);
   readonly turnoCreado = signal<TurnoCreado | null>(null);
 
   ngOnInit(): void {
@@ -36,28 +32,15 @@ export class AppComponent implements OnInit, OnDestroy {
     }));
   }
 
-  abrirTurno(): void {
+  tomarTurno(): void {
+    if (this.enviando()) return;
     this.error.set('');
     this.mensaje.set('');
     this.turnoCreado.set(null);
-    this.cliente.set('');
-    this.formularioAbierto.set(true);
-    setTimeout(() => this.nombreInput?.nativeElement.focus(), 0);
-  }
-
-  cerrarTurno(): void {
-    if (!this.enviando()) this.formularioAbierto.set(false);
-  }
-
-  confirmarTurno(): void {
-    const nombre = this.cliente().trim();
-    if (!nombre || this.enviando()) return;
     this.enviando.set(true);
-    this.error.set('');
-    this.http.post<TurnoCreado>('/api/turnos/', { cliente: nombre }).subscribe({
+    this.subscriptions.add(this.http.post<TurnoCreado>('/api/turnos/', {}).subscribe({
       next: (turno) => {
         this.turnoCreado.set(turno);
-        this.cliente.set('');
         this.enviando.set(false);
         this.actualizarResumen();
       },
@@ -65,8 +48,10 @@ export class AppComponent implements OnInit, OnDestroy {
         this.error.set('No pudimos registrar tu turno. Intenta de nuevo.');
         this.enviando.set(false);
       }
-    });
+    }));
   }
+
+  cerrarConfirmacion(): void { this.turnoCreado.set(null); }
 
   desocupar(mesa: Mesa): void {
     this.error.set('');
@@ -89,12 +74,6 @@ export class AppComponent implements OnInit, OnDestroy {
           : 'No se pudo desocupar la mesa. Intenta de nuevo.');
       }
     });
-  }
-
-  reiniciar(): void {
-    this.turnoCreado.set(null);
-    this.formularioAbierto.set(false);
-    this.cliente.set('');
   }
 
   ngOnDestroy(): void { this.subscriptions.unsubscribe(); }

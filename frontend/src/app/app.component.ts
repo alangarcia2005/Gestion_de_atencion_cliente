@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule, HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription, interval, startWith, switchMap } from 'rxjs';
 
@@ -37,6 +37,7 @@ interface TurnoCreado { numero: number; cliente: string; mesa: number; estado: s
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly subscriptions = new Subscription();
   mesas: Mesa[] = [];
   mesaSeleccionada: Mesa | null = null;
@@ -48,8 +49,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subscriptions.add(interval(5000).pipe(startWith(0), switchMap(() => this.http.get<Mesa[]>('/api/mesas/'))).subscribe({
-      next: (mesas) => { this.mesas = mesas; this.cargando = false; if (this.mesaSeleccionada && !mesas.find((mesa) => mesa.id === this.mesaSeleccionada?.id)?.disponible) this.mesaSeleccionada = null; },
-      error: () => { this.error = 'No se pudo conectar con el sistema. Intenta de nuevo en un momento.'; this.cargando = false; }
+      next: (mesas) => { this.mesas = mesas; this.cargando = false; if (this.mesaSeleccionada && !mesas.find((mesa) => mesa.id === this.mesaSeleccionada?.id)?.disponible) this.mesaSeleccionada = null; this.changeDetector.markForCheck(); },
+      error: () => { this.error = 'No se pudo conectar con el sistema. Intenta de nuevo en un momento.'; this.cargando = false; this.changeDetector.markForCheck(); }
     }));
   }
 
@@ -58,8 +59,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.enviando = true;
     this.error = '';
     this.http.post<TurnoCreado>('/api/turnos/', { cliente: this.cliente.trim(), mesa_id: this.mesaSeleccionada.id }).subscribe({
-      next: (turno) => { this.turnoCreado = turno; this.enviando = false; },
-      error: (error: HttpErrorResponse) => { this.error = error.status === 409 ? 'Alguien acaba de tomar esa mesa. Elige otra.' : 'No pudimos registrar tu turno. Intenta de nuevo.'; this.enviando = false; this.mesaSeleccionada = null; }
+      next: (turno) => { this.turnoCreado = turno; this.enviando = false; this.changeDetector.markForCheck(); },
+      error: (error: HttpErrorResponse) => { this.error = error.status === 409 ? 'Alguien acaba de tomar esa mesa. Elige otra.' : 'No pudimos registrar tu turno. Intenta de nuevo.'; this.enviando = false; this.mesaSeleccionada = null; this.changeDetector.markForCheck(); }
     });
   }
 

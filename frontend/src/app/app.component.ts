@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule, HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription, interval, startWith, switchMap } from 'rxjs';
 
 interface Mesa { id: number; numero: number; capacidad: number; disponible: boolean; }
+interface Resumen { turnos_espera: number; mesas_libres: number; en_atencion: number; mesas_disponibles: Mesa[]; }
 interface TurnoCreado { numero: number; cliente: string; mesa: number; estado: string; }
 
 @Component({
@@ -12,58 +13,139 @@ interface TurnoCreado { numero: number; cliente: string; mesa: number; estado: s
   standalone: true,
   imports: [CommonModule, FormsModule, HttpClientModule],
   template: `
-    <main class="kiosk">
-      <header class="topbar"><div class="brand-mark">M</div><div><p class="eyebrow">BIENVENIDO</p><h1>Atención a clientes</h1></div><span class="live"><i></i> EN VIVO</span></header>
-      <section class="intro"><p class="eyebrow">AUTOSERVICIO</p><h2>Elige tu mesa</h2><p class="muted">Selecciona una mesa disponible para tomar tu turno.</p></section>
-      <p *ngIf="error" class="notice error" role="alert">{{ error }}</p>
-      <section class="tables" aria-label="Mesas disponibles">
-        <button *ngFor="let mesa of mesas" class="table-card" [class.selected]="mesaSeleccionada?.id === mesa.id" [class.busy]="!mesa.disponible" [disabled]="!mesa.disponible || enviando" (click)="mesaSeleccionada = mesa">
-          <span class="table-icon">{{ mesa.disponible ? '?' : '×' }}</span><strong>Mesa {{ mesa.numero }}</strong><span>{{ mesa.capacidad }} personas</span><small>{{ mesa.disponible ? 'DISPONIBLE' : 'OCUPADA' }}</small>
-        </button>
-        <div *ngIf="!cargando && mesas.length === 0" class="empty">No hay mesas configuradas. Pide ayuda al personal.</div>
+    <main class="page">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="sparkle">✦</span> CENTRO DE ATENCIÓN</p>
+          <h1>Hola, bienvenido <span class="sparkle">✳</span></h1>
+          <p class="subtitle">Todo listo para atenderte. Elige una mesa y toma tu turno.</p>
+        </div>
+        <button class="primary top-action" type="button" (click)="focusForm()"><span aria-hidden="true">＋</span> Tomar un turno</button>
+      </header>
+
+      <p *ngIf="error()" class="notice error" role="alert">{{ error() }}</p>
+
+      <section class="stats" aria-label="Resumen de atención">
+        <article class="stat-card">
+          <div class="stat-icon purple" aria-hidden="true">▤</div>
+          <div class="stat-content"><p class="stat-label">EN ESPERA</p><strong>{{ resumen().turnos_espera }}</strong><span>clientes en fila</span></div>
+          <span class="stat-arrow" aria-hidden="true">↗</span>
+        </article>
+        <article class="stat-card">
+          <div class="stat-icon green" aria-hidden="true">●</div>
+          <div class="stat-content"><p class="stat-label">MESAS LIBRES</p><strong>{{ resumen().mesas_libres }}</strong><span>listas para atender</span></div>
+          <span class="stat-arrow flower" aria-hidden="true">✳</span>
+        </article>
+        <article class="stat-card">
+          <div class="stat-icon orange" aria-hidden="true">◷</div>
+          <div class="stat-content"><p class="stat-label">EN ATENCIÓN</p><strong>{{ resumen().en_atencion }}</strong><span>clientes siendo atendidos</span></div>
+          <span class="stat-arrow" aria-hidden="true">↗</span>
+        </article>
       </section>
-      <section class="checkout" *ngIf="mesaSeleccionada && !turnoCreado">
-        <div><span class="muted">Mesa seleccionada</span><strong>Mesa {{ mesaSeleccionada.numero }}</strong></div>
-        <label for="cliente">¿A nombre de quién registramos el turno?</label>
-        <input id="cliente" name="cliente" [(ngModel)]="cliente" maxlength="80" placeholder="Tu nombre" autocomplete="name" (keyup.enter)="confirmarTurno()">
-        <button class="primary" [disabled]="!cliente.trim() || enviando" (click)="confirmarTurno()">{{ enviando ? 'Registrando…' : 'Tomar turno' }} <span>?</span></button>
+
+      <section id="nuevo-turno" class="turn-card" aria-labelledby="turn-title">
+        <ng-container *ngIf="!turnoCreado(); else confirmation">
+          <div class="turn-copy">
+            <p class="eyebrow">NUEVO TURNO</p>
+            <h2 id="turn-title">¿Quién sigue?</h2>
+            <p>Escribe tu nombre y selecciona una mesa disponible.</p>
+          </div>
+          <form class="turn-form" (ngSubmit)="confirmarTurno()">
+            <label class="sr-only" for="cliente">Nombre del cliente</label>
+            <input #nombreInput id="cliente" name="cliente" [ngModel]="cliente()" (ngModelChange)="cliente.set($event)" maxlength="80" placeholder="Nombre del cliente" autocomplete="name">
+            <label class="sr-only" for="mesa">Mesa disponible</label>
+            <select id="mesa" name="mesa" [ngModel]="mesaSeleccionadaId()" (ngModelChange)="mesaSeleccionadaId.set($event)" [disabled]="mesasDisponibles().length === 0">
+              <option [ngValue]="null">{{ mesasDisponibles().length ? 'Elige una mesa' : 'Sin mesas libres' }}</option>
+              <option *ngFor="let mesa of mesasDisponibles()" [ngValue]="mesa.id">Mesa {{ mesa.numero }} · {{ mesa.capacidad }} personas</option>
+            </select>
+            <button class="primary generate" type="submit" [disabled]="enviando() || !cliente().trim() || mesaSeleccionadaId() === null || mesasDisponibles().length === 0">
+              {{ enviando() ? 'Generando…' : 'Generar turno' }} <span aria-hidden="true">→</span>
+            </button>
+          </form>
+          <p *ngIf="mesasDisponibles().length === 0" class="availability-note">No hay mesas disponibles en este momento. Acércate al personal.</p>
+        </ng-container>
+        <ng-template #confirmation>
+          <div class="success-icon" aria-hidden="true">✓</div>
+          <div class="success-copy"><p class="eyebrow">TURNO GENERADO</p><h2>Tu turno es el #{{ turnoCreado()?.numero }}</h2><p>{{ turnoCreado()?.cliente }}, te esperamos en la mesa {{ turnoCreado()?.mesa }}.</p></div>
+          <button class="primary generate" type="button" (click)="reiniciar()">Tomar otro turno <span aria-hidden="true">→</span></button>
+        </ng-template>
       </section>
-      <section *ngIf="turnoCreado" class="success" role="status">
-        <div class="check">?</div><p class="eyebrow">TURNO REGISTRADO</p><h2>Tu turno es el <b>#{{ turnoCreado.numero }}</b></h2><p>{{ turnoCreado.cliente }}, te atenderemos en la mesa {{ turnoCreado.mesa }}.</p><button class="primary" (click)="reiniciar()">Listo</button>
-      </section>
-      <footer><span>¿Necesitas ayuda? Acércate a nuestro equipo.</span><span>Disponibilidad actualizada automáticamente</span></footer>
+
+      <footer><span>¿Necesitas ayuda? Nuestro equipo está para atenderte.</span><span class="refresh-note"><i></i> Disponibilidad actualizada automáticamente</span></footer>
     </main>
   `
 })
 export class AppComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
-  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly subscriptions = new Subscription();
-  mesas: Mesa[] = [];
-  mesaSeleccionada: Mesa | null = null;
-  cliente = '';
-  error = '';
-  cargando = true;
-  enviando = false;
-  turnoCreado: TurnoCreado | null = null;
+  @ViewChild('nombreInput') private nombreInput?: ElementRef<HTMLInputElement>;
+
+  readonly resumen = signal<Resumen>({ turnos_espera: 0, mesas_libres: 0, en_atencion: 0, mesas_disponibles: [] });
+  readonly mesasDisponibles = signal<Mesa[]>([]);
+  readonly cliente = signal('');
+  readonly mesaSeleccionadaId = signal<number | null>(null);
+  readonly error = signal('');
+  readonly enviando = signal(false);
+  readonly turnoCreado = signal<TurnoCreado | null>(null);
 
   ngOnInit(): void {
-    this.subscriptions.add(interval(5000).pipe(startWith(0), switchMap(() => this.http.get<Mesa[]>('/api/mesas/'))).subscribe({
-      next: (mesas) => { this.mesas = mesas; this.cargando = false; if (this.mesaSeleccionada && !mesas.find((mesa) => mesa.id === this.mesaSeleccionada?.id)?.disponible) this.mesaSeleccionada = null; this.changeDetector.markForCheck(); },
-      error: () => { this.error = 'No se pudo conectar con el sistema. Intenta de nuevo en un momento.'; this.cargando = false; this.changeDetector.markForCheck(); }
+    this.subscriptions.add(interval(5000).pipe(startWith(0), switchMap(() => this.http.get<Resumen>('/api/resumen/'))).subscribe({
+      next: (resumen) => this.aplicarResumen(resumen),
+      error: () => this.error.set('No se pudo conectar con el servidor. Intenta de nuevo en un momento.')
     }));
   }
 
-  confirmarTurno(): void {
-    if (!this.mesaSeleccionada || !this.cliente.trim() || this.enviando) return;
-    this.enviando = true;
-    this.error = '';
-    this.http.post<TurnoCreado>('/api/turnos/', { cliente: this.cliente.trim(), mesa_id: this.mesaSeleccionada.id }).subscribe({
-      next: (turno) => { this.turnoCreado = turno; this.enviando = false; this.changeDetector.markForCheck(); },
-      error: (error: HttpErrorResponse) => { this.error = error.status === 409 ? 'Alguien acaba de tomar esa mesa. Elige otra.' : 'No pudimos registrar tu turno. Intenta de nuevo.'; this.enviando = false; this.mesaSeleccionada = null; this.changeDetector.markForCheck(); }
-    });
+  focusForm(): void {
+    this.turnoCreado.set(null);
+    document.getElementById('nuevo-turno')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    this.nombreInput?.nativeElement.focus();
   }
 
-  reiniciar(): void { this.turnoCreado = null; this.cliente = ''; this.mesaSeleccionada = null; this.error = ''; }
+  confirmarTurno(): void {
+    const nombre = this.cliente().trim();
+    const mesaId = this.mesaSeleccionadaId();
+    if (!nombre || mesaId === null || this.enviando()) return;
+    this.enviando.set(true);
+    this.error.set('');
+    this.subscriptions.add(this.http.post<TurnoCreado>('/api/turnos/', { cliente: nombre, mesa_id: mesaId }).subscribe({
+      next: (turno) => {
+        this.turnoCreado.set(turno);
+        this.cliente.set('');
+        this.mesaSeleccionadaId.set(null);
+        this.enviando.set(false);
+        this.actualizarResumen();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.error.set(error.status === 409 ? 'Alguien acaba de tomar esa mesa. Elige otra.' : 'No pudimos registrar tu turno. Intenta de nuevo.');
+        this.mesaSeleccionadaId.set(null);
+        this.enviando.set(false);
+        this.actualizarResumen();
+      }
+    }));
+  }
+
+  reiniciar(): void {
+    this.turnoCreado.set(null);
+    this.cliente.set('');
+    this.mesaSeleccionadaId.set(null);
+    this.error.set('');
+    this.focusForm();
+  }
+
   ngOnDestroy(): void { this.subscriptions.unsubscribe(); }
+
+  private actualizarResumen(): void {
+    this.subscriptions.add(this.http.get<Resumen>('/api/resumen/').subscribe({
+      next: (resumen) => this.aplicarResumen(resumen),
+      error: () => this.error.set('No se pudo actualizar la disponibilidad. Intenta de nuevo.')
+    }));
+  }
+
+  private aplicarResumen(resumen: Resumen): void {
+    this.resumen.set(resumen);
+    this.mesasDisponibles.set(resumen.mesas_disponibles);
+    this.error.set('');
+    const seleccionada = this.mesaSeleccionadaId();
+    if (seleccionada !== null && !resumen.mesas_disponibles.some((mesa) => mesa.id === seleccionada)) this.mesaSeleccionadaId.set(null);
+  }
 }

@@ -12,6 +12,16 @@ from .serializers import CrearTurnoSerializer, MesaSerializer
 def listar_mesas(request):
     return Response(MesaSerializer(Mesa.objects.all(), many=True).data)
 
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def resumen(request):
+    return Response({
+        "turnos_espera": Turno.objects.filter(estado=Turno.Estado.ESPERANDO).count(),
+        "mesas_libres": Mesa.objects.filter(disponible=True).count(),
+        "en_atencion": Turno.objects.filter(estado=Turno.Estado.EN_ATENCION).count(),
+        "mesas_disponibles": MesaSerializer(Mesa.objects.filter(disponible=True), many=True).data,
+    })
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def tomar_turno(request):

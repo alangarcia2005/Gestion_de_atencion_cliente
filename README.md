@@ -36,6 +36,7 @@ Abre `http://localhost:4200`. El servidor de desarrollo reenvía `/api` a Django
 
 ## API
 - `GET /api/mesas/`: consulta mesas y disponibilidad.
+- `GET /api/resumen/`: devuelve los contadores del kiosco y la lista de mesas disponibles.
 - `POST /api/turnos/`: crea turno. JSON: `{"cliente":"Ana","mesa_id":1}`. Si la mesa acaba de ser tomada, responde `409`.
 - `POST /api/mesas/<id>/liberar/`: finaliza el turno activo y libera la mesa. Requiere un usuario administrador autenticado.
 

@@ -2,7 +2,7 @@
 
 Sistema de autoservicio: desde una pantalla dentro del restaurante, el cliente selecciona una mesa disponible, registra su nombre y recibe un turno. Al tomar turno, la mesa se reserva hasta que el personal la libera.
 
-## Tecnologías
+## TecnologÃ­as
 - Backend: Python 3.12, Django y Django REST Framework.
 - Frontend: Angular 21, interfaz tipo kiosco.
 - Base de datos inicial: SQLite.
@@ -22,7 +22,7 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-En el panel `http://127.0.0.1:8000/admin/`, inicia sesión y crea las mesas. Para terminar un turno y devolver una mesa a disponibilidad, selecciona la mesa en la lista y usa la acción **Finalizar turnos y liberar mesas seleccionadas**.
+En el panel `http://127.0.0.1:8000/admin/`, inicia sesiÃ³n y crea las mesas. Para terminar un turno y devolver una mesa a disponibilidad, selecciona la mesa en la lista y usa la acciÃ³n **Finalizar turnos y liberar mesas seleccionadas**.
 
 ## Iniciar Angular
 En otra terminal:
@@ -32,7 +32,7 @@ npm install
 npm start
 ```
 
-Abre `http://localhost:4200`. El servidor de desarrollo reenvía `/api` a Django.
+Abre `http://localhost:4200`. El servidor de desarrollo reenvÃ­a `/api` a Django.
 
 ## API
 - `GET /api/mesas/`: consulta mesas y disponibilidad.
@@ -40,4 +40,4 @@ Abre `http://localhost:4200`. El servidor de desarrollo reenvía `/api` a Django.
 - `POST /api/mesas/<id>/liberar/`: finaliza el turno activo y libera la mesa. Requiere un usuario administrador autenticado.
 
 ## GitHub
-El monorepo incluye frontend y backend para compartir issues, documentación y cambios. Para publicarlo, crea un repositorio vacío en GitHub y, desde esta carpeta, configura el remoto y envía la rama principal.
+El monorepo incluye frontend y backend para compartir issues, documentaciÃ³n y cambios. Para publicarlo, crea un repositorio vacÃ­o en GitHub y, desde esta carpeta, configura el remoto y envÃ­a la rama principal.

@@ -13,25 +13,25 @@ interface TurnoCreado { numero: number; cliente: string; mesa: number; estado: s
   imports: [CommonModule, FormsModule, HttpClientModule],
   template: `
     <main class="kiosk">
-      <header class="topbar"><div class="brand-mark">M</div><div><p class="eyebrow">BIENVENIDO</p><h1>Atención a clientes</h1></div><span class="live"><i></i> EN VIVO</span></header>
+      <header class="topbar"><div class="brand-mark">M</div><div><p class="eyebrow">BIENVENIDO</p><h1>AtenciÃ³n a clientes</h1></div><span class="live"><i></i> EN VIVO</span></header>
       <section class="intro"><p class="eyebrow">AUTOSERVICIO</p><h2>Elige tu mesa</h2><p class="muted">Selecciona una mesa disponible para tomar tu turno.</p></section>
       <p *ngIf="error" class="notice error" role="alert">{{ error }}</p>
       <section class="tables" aria-label="Mesas disponibles">
         <button *ngFor="let mesa of mesas" class="table-card" [class.selected]="mesaSeleccionada?.id === mesa.id" [class.busy]="!mesa.disponible" [disabled]="!mesa.disponible || enviando" (click)="mesaSeleccionada = mesa">
-          <span class="table-icon">{{ mesa.disponible ? '?' : '×' }}</span><strong>Mesa {{ mesa.numero }}</strong><span>{{ mesa.capacidad }} personas</span><small>{{ mesa.disponible ? 'DISPONIBLE' : 'OCUPADA' }}</small>
+          <span class="table-icon">{{ mesa.disponible ? '?' : 'Ã—' }}</span><strong>Mesa {{ mesa.numero }}</strong><span>{{ mesa.capacidad }} personas</span><small>{{ mesa.disponible ? 'DISPONIBLE' : 'OCUPADA' }}</small>
         </button>
         <div *ngIf="!cargando && mesas.length === 0" class="empty">No hay mesas configuradas. Pide ayuda al personal.</div>
       </section>
       <section class="checkout" *ngIf="mesaSeleccionada && !turnoCreado">
         <div><span class="muted">Mesa seleccionada</span><strong>Mesa {{ mesaSeleccionada.numero }}</strong></div>
-        <label for="cliente">¿A nombre de quién registramos el turno?</label>
+        <label for="cliente">Â¿A nombre de quiÃ©n registramos el turno?</label>
         <input id="cliente" name="cliente" [(ngModel)]="cliente" maxlength="80" placeholder="Tu nombre" autocomplete="name" (keyup.enter)="confirmarTurno()">
-        <button class="primary" [disabled]="!cliente.trim() || enviando" (click)="confirmarTurno()">{{ enviando ? 'Registrando…' : 'Tomar turno' }} <span>?</span></button>
+        <button class="primary" [disabled]="!cliente.trim() || enviando" (click)="confirmarTurno()">{{ enviando ? 'Registrandoâ€¦' : 'Tomar turno' }} <span>?</span></button>
       </section>
       <section *ngIf="turnoCreado" class="success" role="status">
         <div class="check">?</div><p class="eyebrow">TURNO REGISTRADO</p><h2>Tu turno es el <b>#{{ turnoCreado.numero }}</b></h2><p>{{ turnoCreado.cliente }}, te atenderemos en la mesa {{ turnoCreado.mesa }}.</p><button class="primary" (click)="reiniciar()">Listo</button>
       </section>
-      <footer><span>¿Necesitas ayuda? Acércate a nuestro equipo.</span><span>Disponibilidad actualizada automáticamente</span></footer>
+      <footer><span>Â¿Necesitas ayuda? AcÃ©rcate a nuestro equipo.</span><span>Disponibilidad actualizada automÃ¡ticamente</span></footer>
     </main>
   `
 })

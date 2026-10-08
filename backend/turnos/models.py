@@ -14,7 +14,7 @@ class Mesa(models.Model):
 class Turno(models.Model):
     class Estado(models.TextChoices):
         ESPERANDO = "esperando", "Esperando"
-        EN_ATENCION = "en_atencion", "En atención"
+        EN_ATENCION = "en_atencion", "En atenciÃ³n"
         FINALIZADO = "finalizado", "Finalizado"
         CANCELADO = "cancelado", "Cancelado"
 
@@ -34,4 +34,4 @@ class Turno(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Turno {self.numero} — {self.cliente}"
+        return f"Turno {self.numero} â€” {self.cliente}"

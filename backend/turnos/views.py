@@ -20,7 +20,7 @@ def tomar_turno(request):
     with transaction.atomic():
         mesa = get_object_or_404(Mesa.objects.select_for_update(), pk=serializer.validated_data["mesa_id"])
         if not mesa.disponible:
-            return Response({"detail": "Esta mesa ya no est· disponible. Elige otra."}, status=status.HTTP_409_CONFLICT)
+            return Response({"detail": "Esta mesa ya no est√° disponible. Elige otra."}, status=status.HTTP_409_CONFLICT)
         mesa.disponible = False
         mesa.save(update_fields=["disponible"])
         turno = Turno.objects.create(cliente=serializer.validated_data["cliente"], mesa=mesa)
@@ -34,7 +34,7 @@ def liberar_mesa(request, mesa_id):
         mesa = get_object_or_404(Mesa.objects.select_for_update(), pk=mesa_id)
         turno = mesa.turnos.filter(estado__in=[Turno.Estado.ESPERANDO, Turno.Estado.EN_ATENCION]).first()
         if not turno:
-            return Response({"detail": "La mesa ya est· disponible."}, status=status.HTTP_409_CONFLICT)
+            return Response({"detail": "La mesa ya est√° disponible."}, status=status.HTTP_409_CONFLICT)
         turno.estado = Turno.Estado.FINALIZADO
         turno.save(update_fields=["estado"])
         mesa.disponible = True

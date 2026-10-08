@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+.venv/
+venv/
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

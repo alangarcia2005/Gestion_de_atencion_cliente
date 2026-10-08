@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from .models import Mesa, Turno
@@ -40,6 +40,7 @@ def resumen(request):
     })
 
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def tomar_turno(request):
     serializer = CrearTurnoSerializer(data=request.data)

@@ -42,3 +42,18 @@ Abre `http://localhost:4200`. El servidor de desarrollo reenvía `/api` a Django
 
 ## GitHub
 El monorepo incluye frontend y backend para compartir issues, documentación y cambios. Para publicarlo, crea un repositorio vacío en GitHub y, desde esta carpeta, configura el remoto y envía la rama principal.
+
+## Desplegar el backend Django en Vercel
+
+El backend puede desplegarse como un segundo proyecto Vercel conectado al mismo repositorio. Al importar el repo, configura `backend` como **Root Directory** y selecciona el preset **Django/Python**. Vercel detecta `manage.py` y `config/wsgi.py`.
+
+Antes del primer despliegue, conecta una base PostgreSQL persistente (por ejemplo, Neon desde Vercel Marketplace) al proyecto y configura estas variables en **Settings → Environment Variables**:
+
+- `DATABASE_URL`: URL de conexión PostgreSQL proporcionada por Neon.
+- `DJANGO_SECRET_KEY`: secreto aleatorio largo; no lo guardes en GitHub.
+- `DJANGO_DEBUG`: `false`.
+- `DJANGO_ALLOWED_HOSTS`: `.vercel.app` (agrega el dominio del API si usas uno propio).
+- `CSRF_TRUSTED_ORIGINS`: origen HTTPS exacto del proyecto Angular.
+- `CORS_ALLOWED_ORIGINS`: origen HTTPS exacto del proyecto Angular.
+
+`backend/config/settings.py` conserva SQLite para ejecución local, pero exige `DATABASE_URL` en Vercel porque el almacenamiento local de funciones no es persistente. Después de desplegar, las rutas de la API están bajo `/api/`, por ejemplo `/api/resumen/`. El frontend también deberá apuntar al dominio público del API; los proxies de `ng serve` solo funcionan durante desarrollo local.

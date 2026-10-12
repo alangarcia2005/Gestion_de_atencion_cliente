@@ -2,18 +2,21 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "outputDirectory": "dist/kiosco-restaurante/browser",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "https://gestion-de-atencion-cliente-lsvf.vercel.app/api/:path*"
+      "src": "/api/(.*)",
+      "dest": "https://gestion-de-atencion-cliente-lsvf.vercel.app/api/$1"
     },
     {
-      "source": "/admin/:path*",
-      "destination": "https://gestion-de-atencion-cliente-lsvf.vercel.app/admin/:path*"
+      "src": "/admin/(.*)",
+      "dest": "https://gestion-de-atencion-cliente-lsvf.vercel.app/admin/$1"
     },
     {
-      "source": "/:path*",
-      "destination": "/index.html"
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }

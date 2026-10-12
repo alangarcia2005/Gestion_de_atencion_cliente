@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -37,6 +38,7 @@ def resumen(request):
         "en_atencion": Turno.objects.filter(estado=Turno.Estado.EN_ATENCION).count(),
         "mesas": mesas,
         "personal": bool(request.user.is_authenticated and request.user.is_staff),
+        "csrf_token": get_token(request),
     })
 
 @api_view(["POST"])

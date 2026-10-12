@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { Subscription, interval, startWith, switchMap } from 'rxjs';
 
 interface Mesa { id: number; numero: number; capacidad: number; disponible: boolean; turno_numero: number | null; turno_estado: string | null; }
-interface Resumen { turnos_espera: number; mesas_libres: number; en_atencion: number; mesas: Mesa[]; personal: boolean; }
+interface Resumen { turnos_espera: number; mesas_libres: number; en_atencion: number; mesas: Mesa[]; personal: boolean; csrf_token: string; }
 interface TurnoCreado { numero: number; mesa: number | null; estado: string; }
 interface ResultadoLiberacion { detail: string; mesa: number; turno_asignado: number | null; }
 
@@ -15,10 +15,12 @@ interface ResultadoLiberacion { detail: string; mesa: number; turno_asignado: nu
   templateUrl: './app.component.html'
 })
 export class AppComponent implements OnInit, OnDestroy {
+  private readonly apiBase = 'https://gestion-de-atencion-cliente-lsvf.vercel.app/api/';
   private readonly http = inject(HttpClient);
   private readonly subscriptions = new Subscription();
 
-  readonly resumen = signal<Resumen>({ turnos_espera: 0, mesas_libres: 0, en_atencion: 0, mesas: [], personal: false });
+  readonly resumen = signal<Resumen>({ turnos_espera: 0, mesas_libres: 0, en_atencion: 0, mesas: [], personal: false, csrf_token: '' });
+  readonly csrfToken = signal('');
   readonly error = signal('');
   readonly mensaje = signal('');
   readonly enviando = signal(false);
@@ -26,8 +28,8 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly turnoCreado = signal<TurnoCreado | null>(null);
 
   ngOnInit(): void {
-    this.subscriptions.add(interval(5000).pipe(startWith(0), switchMap(() => this.http.get<Resumen>('/api/resumen/'))).subscribe({
-      next: (resumen) => this.resumen.set(resumen),
+    this.subscriptions.add(interval(5000).pipe(startWith(0), switchMap(() => this.http.get<Resumen>(this.apiBase + 'resumen/', { withCredentials: true }))).subscribe({
+      next: (resumen) => { this.resumen.set(resumen); this.csrfToken.set(resumen.csrf_token); },
       error: () => this.error.set('No se pudo conectar con el servidor. Intenta de nuevo en un momento.')
     }));
   }
@@ -38,7 +40,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.mensaje.set('');
     this.turnoCreado.set(null);
     this.enviando.set(true);
-    this.subscriptions.add(this.http.post<TurnoCreado>('/api/turnos/', {}).subscribe({
+    this.subscriptions.add(this.http.post<TurnoCreado>(this.apiBase + 'turnos/', {}, { withCredentials: true }).subscribe({
       next: (turno) => {
         this.turnoCreado.set(turno);
         this.enviando.set(false);
@@ -57,9 +59,9 @@ export class AppComponent implements OnInit, OnDestroy {
     this.error.set('');
     this.mensaje.set('');
     this.desocupandoId.set(mesa.id);
-    const csrf = this.tokenCsrf();
-    const options = csrf ? { headers: new HttpHeaders({ 'X-CSRFToken': csrf }) } : {};
-    this.http.post<ResultadoLiberacion>('/api/mesas/' + mesa.id + '/desocupar/', {}, options).subscribe({
+    const csrf = this.csrfToken();
+    const options = { headers: new HttpHeaders({ 'X-CSRFToken': csrf }), withCredentials: true };
+    this.http.post<ResultadoLiberacion>(this.apiBase + 'mesas/' + mesa.id + '/desocupar/', {}, options).subscribe({
       next: (resultado) => {
         this.desocupandoId.set(null);
         this.mensaje.set(resultado.turno_asignado !== null
@@ -79,14 +81,10 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void { this.subscriptions.unsubscribe(); }
 
   private actualizarResumen(): void {
-    this.subscriptions.add(this.http.get<Resumen>('/api/resumen/').subscribe({
-      next: (resumen) => this.resumen.set(resumen),
+    this.subscriptions.add(this.http.get<Resumen>(this.apiBase + 'resumen/', { withCredentials: true }).subscribe({
+      next: (resumen) => { this.resumen.set(resumen); this.csrfToken.set(resumen.csrf_token); },
       error: () => this.error.set('No se pudo actualizar el estado de las mesas.')
     }));
   }
 
-  private tokenCsrf(): string {
-    const csrf = document.cookie.split('; ').find((cookie) => cookie.startsWith('csrftoken='));
-    return csrf ? decodeURIComponent(csrf.substring('csrftoken='.length)) : '';
-  }
 }

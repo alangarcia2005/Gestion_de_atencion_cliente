@@ -1,0 +1,14 @@
+**/node_modules/**
+**/.angular/**
+**/dist/**
+**/.venv/**
+**/venv/**
+**/__pycache__/**
+**/.agents/**
+**/skills-lock.json
+**/work/**
+backend/db.sqlite3
+backend/.local-migration-data.json
+backend/.env*
+outputs/**
+migrations/**

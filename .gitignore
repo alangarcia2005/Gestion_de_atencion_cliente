@@ -18,3 +18,7 @@ Thumbs.db
 
 # Local Codex runtime logs
 /work/
+backend/.env
+backend/.local-migration-data.json
+.vercel
+.env*

@@ -15,7 +15,8 @@ interface ResultadoLiberacion { detail: string; mesa: number; turno_asignado: nu
   templateUrl: './app.component.html'
 })
 export class AppComponent implements OnInit, OnDestroy {
-  private readonly apiBase = 'https://gestion-de-atencion-cliente-lsvf.vercel.app/api/';
+  // Use the frontend origin so staff session cookies work consistently across browsers.
+  private readonly apiBase = '/api/';
   private readonly http = inject(HttpClient);
   private readonly subscriptions = new Subscription();
 

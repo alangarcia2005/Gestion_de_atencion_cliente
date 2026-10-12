@@ -10,6 +10,10 @@
     {
       "source": "/admin/:path*",
       "destination": "https://gestion-de-atencion-cliente-lsvf.vercel.app/admin/:path*"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }
